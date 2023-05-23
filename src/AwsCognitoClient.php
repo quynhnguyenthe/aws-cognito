@@ -924,4 +924,60 @@ class AwsCognitoClient
         return true;
     } //Function ends
 
+    /**
+     * Admin enable user.
+     *
+     * @see https://docs.aws.amazon.com/aws-sdk-php/v3/api/api-cognito-idp-2016-04-18.html#adminenableuser
+     *
+     * @param string $username
+     * @return bool
+     */
+    public function adminEnableUser(string $username)
+    {
+        try {
+            $this->client->adminEnableUser([
+                'UserPoolId' => $this->poolId,
+                'Username' => $username
+            ]);
+
+        } catch (CognitoIdentityProviderException $e) {
+            if ($e->getAwsErrorCode() === self::USER_NOT_FOUND) {
+                return 'validation.invalid_user';
+            } //End if
+
+            throw $e;
+        } catch (Exception $e) {
+            throw $e;
+        } //Try-catch ends
+        return true;
+    } //Function ends
+
+    /**
+     * Admin disable user.
+     *
+     * @see https://docs.aws.amazon.com/aws-sdk-php/v3/api/api-cognito-idp-2016-04-18.html#admindisableuser
+     *
+     * @param string $username
+     * @return bool
+     */
+    public function adminDisableUser(string $username)
+    {
+        try {
+            $this->client->adminDisableUser([
+                'UserPoolId' => $this->poolId,
+                'Username' => $username
+            ]);
+
+        } catch (CognitoIdentityProviderException $e) {
+            if ($e->getAwsErrorCode() === self::USER_NOT_FOUND) {
+                return 'validation.invalid_user';
+            } //End if
+
+            throw $e;
+        } catch (Exception $e) {
+            throw $e;
+        } //Try-catch ends
+        return true;
+    } //Function ends
+
 } //Class ends
