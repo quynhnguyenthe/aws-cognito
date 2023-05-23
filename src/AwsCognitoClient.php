@@ -980,4 +980,32 @@ class AwsCognitoClient
         return true;
     } //Function ends
 
+    /**
+     * Admin user global signout.
+     *
+     * @see https://docs.aws.amazon.com/aws-sdk-php/v3/api/api-cognito-idp-2016-04-18.html#adminuserglobalsignout
+     *
+     * @param string $username
+     * @return bool
+     */
+    public function adminUserGlobalSignOut(string $username)
+    {
+        try {
+            $this->client->adminUserGlobalSignOut([
+                'UserPoolId' => $this->poolId,
+                'Username' => $username
+            ]);
+
+        } catch (CognitoIdentityProviderException $e) {
+            if ($e->getAwsErrorCode() === self::USER_NOT_FOUND) {
+                return 'validation.invalid_user';
+            } //End if
+
+            throw $e;
+        } catch (Exception $e) {
+            throw $e;
+        } //Try-catch ends
+        return true;
+    } //Function ends
+
 } //Class ends
