@@ -74,7 +74,7 @@ class CognitoTokenGuard extends TokenGuard
         AwsCognitoClient $client, 
         Request $request, 
         UserProvider $provider = null,
-        string $keyUsername = 'email'
+        string $keyUsername = 'username'
     ) {
         $this->cognito = $cognito;
         $this->client = $client;
@@ -149,7 +149,10 @@ class CognitoTokenGuard extends TokenGuard
     public function attempt(array $credentials = [], $remember = false)
     {
         try {
-            $this->lastAttempted = $user = $this->provider->retrieveByCredentials($credentials);
+            $dynamoDBCredentials = [
+                'user_id' => $credentials['username']
+            ];
+            $this->lastAttempted = $user = $this->provider->retrieveByCredentials($dynamoDBCredentials);
 
             //Check if the user exists in local data store
             if (!($user instanceof Authenticatable)) {
