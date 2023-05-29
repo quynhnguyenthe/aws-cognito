@@ -157,10 +157,10 @@ class AwsCognitoClient
      */
     public function __construct(
         CognitoIdentityProviderClient $client,
-        $clientId,
-        $clientSecret,
-        $poolId,
-        $boolClientSecret
+                                      $clientId,
+                                      $clientSecret,
+                                      $poolId,
+                                      $boolClientSecret
     )
     {
         $this->client = $client;
@@ -263,7 +263,7 @@ class AwsCognitoClient
      *
      * @param string $username
      * @param array $clientMetadata (optional)
-     * @return string
+     * @return array
      */
     public function sendResetLink($username, array $clientMetadata=null)
     {
@@ -284,14 +284,9 @@ class AwsCognitoClient
 
             $result = $this->client->forgotPassword($payload);
         } catch (CognitoIdentityProviderException $e) {
-            if ($e->getAwsErrorCode() === self::USER_NOT_FOUND) {
-                return Password::INVALID_USER;
-            } //End if
-
-            throw $e;
+            return ['code'=> $e->getAwsErrorCode(), 'message' => $e->getAwsErrorMessage()];
         } //Try-catch ends
-
-        return Password::RESET_LINK_SENT;
+        return ['code'=> Password::RESET_LINK_SENT, 'message' => 'success'];
     } //Function ends
 
 
@@ -302,7 +297,7 @@ class AwsCognitoClient
      * @param string $code
      * @param string $username
      * @param string $password
-     * @return string
+     * @return array
      */
     public function resetPassword($code, $username, $password)
     {
@@ -324,22 +319,10 @@ class AwsCognitoClient
 
             $this->client->confirmForgotPassword($payload);
         } catch (CognitoIdentityProviderException $e) {
-            if ($e->getAwsErrorCode() === self::USER_NOT_FOUND) {
-                return Password::INVALID_USER;
-            } //End if
-
-            if ($e->getAwsErrorCode() === self::INVALID_PASSWORD) {
-                return Lang::has('passwords.password') ? 'passwords.password' : $e->getAwsErrorMessage();
-            } //End if
-
-            if ($e->getAwsErrorCode() === self::CODE_MISMATCH || $e->getAwsErrorCode() === self::EXPIRED_CODE) {
-                return Password::INVALID_TOKEN;
-            } //End if
-
-            throw $e;
+            return ['code'=> $e->getAwsErrorCode(), 'message' => $e->getAwsErrorMessage()];
         } //Try-catch ends
 
-        return Password::PASSWORD_RESET;
+        return ['code'=> Password::PASSWORD_RESET, 'message' => 'success'];
     } //Function ends
 
 
@@ -373,7 +356,7 @@ class AwsCognitoClient
      *
      * @param string $username
      * @param string $groupname
-     * 
+     *
      * @return bool
      */
     public function adminAddUserToGroup(string $username, string $groupname)
@@ -493,14 +476,10 @@ class AwsCognitoClient
 
             $this->client->AdminRespondToAuthChallenge($payload);
         } catch (CognitoIdentityProviderException $e) {
-            if ($e->getAwsErrorCode() === self::CODE_MISMATCH || $e->getAwsErrorCode() === self::EXPIRED_CODE) {
-                return Password::INVALID_TOKEN;
-            } //End if
-
-            throw $e;
+            return ['code'=> $e->getAwsErrorCode(), 'message' => $e->getAwsErrorMessage()];
         } //Try-catch ends
 
-        return Password::PASSWORD_RESET;
+        return ['code'=> 'success', 'message' => Password::PASSWORD_RESET];
     } //Function ends
 
 
@@ -563,7 +542,7 @@ class AwsCognitoClient
      * @param string $accessToken
      * @param string $passwordOld
      * @param string $passwordNew
-     * @return bool
+     * @return array
      */
     public function changePassword(string $accessToken, string $passwordOld, string $passwordNew)
     {
@@ -574,17 +553,10 @@ class AwsCognitoClient
                 'ProposedPassword' => $passwordNew
             ]);
         } catch (CognitoIdentityProviderException $e) {
-            if ($e->getAwsErrorCode() === self::USER_NOT_FOUND) {
-                return Password::INVALID_USER;
-            } //End if
-
-            if ($e->getAwsErrorCode() === self::INVALID_PASSWORD) {
-                return Lang::has('passwords.password') ? 'passwords.password' : $e->getAwsErrorMessage();
-            } //End if
-
-            throw $e;
+            return ['code'=> $e->getAwsErrorCode(), 'message' => $e->getAwsErrorMessage()];
         } //Try-catch ends
-        return true;
+
+        return ['code'=> 'success', 'message' => 'success'];
     } //Function ends
 
 
@@ -833,7 +805,7 @@ class AwsCognitoClient
         return $userAttributes;
     } //Function ends
 
-    
+
     /**
      * Generate a new token using refresh token.
      *
@@ -872,7 +844,7 @@ class AwsCognitoClient
 
         return $response;
     } //Function ends
-    
+
 
     /**
      * Revoke all the access tokens from AWS Cognit for a specified refresh-token in a user pool.
@@ -1006,6 +978,77 @@ class AwsCognitoClient
             throw $e;
         } //Try-catch ends
         return true;
+    } //Function ends
+
+    /**
+     * Send a verify email code to a user.
+     * @see https://docs.aws.amazon.com/aws-sdk-php/v3/api/api-cognito-idp-2016-04-18.html#getuserattributeverificationcode
+     * @param string $token
+     * @param array $clientMetadata (optional)
+     * @return array
+     */
+    public function getUserAttributeVerificationCode(string $token, array $clientMetadata = null)
+    {
+        try {
+            //Build payload
+            $payload = [
+                'AccessToken' => $token,
+                'AttributeName' => 'email',
+                'ClientMetadata' => $this->buildClientMetadata([], $clientMetadata),
+            ];
+
+            $result = $this->client->GetUserAttributeVerificationCode($payload);
+        } catch (CognitoIdentityProviderException $e) {
+            return ['code'=> $e->getAwsErrorCode(), 'message' => $e->getAwsErrorMessage()];
+        } //Try-catch ends
+
+        return ['code'=> 'success', 'message' => 'success'];
+    } //Function ends
+
+    /**
+     * verify user email.
+     * @see https://docs.aws.amazon.com/aws-sdk-php/v3/api/api-cognito-idp-2016-04-18.html#verifyuserattribute
+     * @param string $token
+     * @param string $code
+     * @return array
+     */
+    public function verifyUserAttribute(string $token, string $code)
+    {
+        try {
+            //Build payload
+            $payload = [
+                'AccessToken' => $token,
+                'AttributeName' => 'email',
+                'Code' => $code,
+            ];
+
+            $result = $this->client->verifyUserAttribute($payload);
+        } catch (CognitoIdentityProviderException $e) {
+            return ['code'=> $e->getAwsErrorCode(), 'message' => $e->getAwsErrorMessage()];
+        } //Try-catch ends
+
+        return ['code'=> 'success', 'message' => 'success'];
+    } //Function ends
+
+    /**
+     * get data user.
+     * @see https://docs.aws.amazon.com/aws-sdk-php/v3/api/api-cognito-idp-2016-04-18.html#getuser
+     * @param string $token
+     * @return array
+     */
+    public function getCurrentUser(string $token)
+    {
+        try {
+            //Build payload
+            $payload = [
+                'AccessToken' => $token,
+            ];
+            $result = $this->client->getUser($payload);
+        } catch (CognitoIdentityProviderException $e) {
+            return ['code'=> $e->getAwsErrorCode(), 'message' => $e->getAwsErrorMessage()];
+        } //Try-catch ends
+
+        return ['code'=> 'success', 'message' => 'success', 'data' => $result];
     } //Function ends
 
 } //Class ends
